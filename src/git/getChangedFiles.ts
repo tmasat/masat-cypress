@@ -1,0 +1,28 @@
+import { execSync } from 'child_process';
+
+export interface GitOptions {
+  base: string;
+}
+
+export function getChangedFiles(options: GitOptions): string[] {
+  const { base } = options;
+
+  try {
+    const output = execSync(`git diff --name-only ${base}`, {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+
+    return output
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Failed to get changed files (base: "${base}").\n` +
+        `Make sure "${base}" exists and you are inside a git repository.\n` +
+        `Details: ${message}`
+    );
+  }
+}
