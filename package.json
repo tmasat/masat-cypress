@@ -1,0 +1,34 @@
+{
+  "name": "smart-cypress",
+  "version": "1.0.0",
+  "description": "Run only the Cypress specs affected by your git changes",
+  "main": "dist/src/cli/run.js",
+  "bin": {
+    "smart-cypress": "dist/bin/smart-cypress.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "postbuild": "chmod +x dist/bin/smart-cypress.js",
+    "dev": "tsx bin/smart-cypress.ts",
+    "start": "node dist/bin/smart-cypress.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "cypress",
+    "testing",
+    "cli",
+    "git",
+    "smart-testing",
+    "affected-tests"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.0.0",
+    "glob": "^10.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
