@@ -1,9 +1,10 @@
 import { Command } from 'commander';
 import { getChangedFiles } from '../git/getChangedFiles';
+import { buildDependencyGraph } from '../graph/buildDependencyGraph';
 import { detectAffectedTests } from '../analyzer/detectAffectedTests';
 import { runCypress } from '../runner/runCypress';
-
-const DIVIDER = '─'.repeat(50);
+import { logger } from '../utils/logger';
+import { toRelative } from '../utils/pathUtils';
 
 export function createCLI(): Command {
   const program = new Command();
@@ -15,66 +16,95 @@ export function createCLI(): Command {
 
   program
     .command('run')
-    .description('Detect changed files and run only the affected Cypress specs')
+    .description('Detect changed files, build a dependency graph, and run only the affected specs')
     .option('-b, --base <ref>', 'Git ref (branch or SHA) to compare against', 'origin/main')
-    .option('-p, --spec-pattern <pattern>', 'Glob pattern for discovering spec files', 'cypress/e2e/**/*.cy.{ts,js}')
+    .option('--tsconfig <path>', 'Path to tsconfig.json, relative to project root', 'tsconfig.json')
+    .option('--spec-globs <globs>', 'Comma-separated glob patterns for Cypress spec files', 'cypress/e2e/**/*.cy.ts,cypress/e2e/**/*.cy.js')
     .option('--headed', 'Run Cypress in headed (visible browser) mode', false)
     .option('--browser <name>', 'Browser to use (chrome, firefox, edge, …)')
-    .option('--run-all-on-no-match', 'Fall back to running all specs when no match is found', false)
+    .option('--run-all-on-no-match', 'Fall back to the full test suite when no specs are affected', false)
     .action(async (options) => {
-      try {
-        console.log(`\n${DIVIDER}`);
-        console.log('  smart-cypress – affected-test runner');
-        console.log(DIVIDER);
-        console.log(`  Base ref    : ${options.base}`);
-        console.log(`  Spec pattern: ${options.specPattern}`);
-        console.log(DIVIDER);
+      const cwd = process.cwd();
+      const specGlobs = (options.specGlobs as string)
+        .split(',')
+        .map((g: string) => g.trim())
+        .filter(Boolean);
 
-        console.log('\n[1/3] Detecting changed files…');
+      try {
+        logger.header('smart-cypress  –  dependency-graph test runner', {
+          'Base ref': options.base,
+          'tsconfig': options.tsconfig,
+          'Spec globs': specGlobs.join(', '),
+        });
+
+        logger.step(1, 4, 'Detecting changed files…');
         const changedFiles = getChangedFiles({ base: options.base });
 
         if (changedFiles.length === 0) {
-          console.log('      No changed files detected – nothing to test.');
+          logger.info('No changed files detected – nothing to test.');
           process.exit(0);
         }
 
-        console.log(`      Found ${changedFiles.length} changed file(s):`);
-        changedFiles.forEach((f) => console.log(`        • ${f}`));
+        logger.info(`Found ${changedFiles.length} changed file(s):`);
+        changedFiles.forEach((f) => logger.bullet(f));
 
-        console.log('\n[2/3] Analysing affected specs…');
-        const { specs, keywords } = detectAffectedTests(changedFiles, {
-          specPattern: options.specPattern,
+        logger.step(2, 4, 'Building dependency graph…');
+        logger.info('Parsing project with ts-morph…');
+
+        const graph = buildDependencyGraph({
+          cwd,
+          tsConfigPath: options.tsconfig,
+          specGlobs,
         });
 
-        console.log(`      Keywords extracted : ${keywords.join(', ') || '(none)'}`);
+        logger.info(`Graph built. ${graph.dependencies.size} file node(s) indexed.`);
 
-        if (specs.length === 0) {
-          console.log('\n      No matching specs found.');
+        logger.step(3, 4, 'Detecting affected tests…');
+
+        const { affectedSpecs, unknownFiles } = detectAffectedTests(changedFiles, graph, { cwd });
+
+        if (unknownFiles.length > 0) {
+          logger.warn(
+            `${unknownFiles.length} changed file(s) not found in the dependency graph (skipped):`
+          );
+          unknownFiles.forEach((f) => logger.bullet(f));
+        }
+
+        if (affectedSpecs.length === 0) {
+          logger.info('No affected specs found.');
 
           if (options.runAllOnNoMatch) {
-            console.log('      --run-all-on-no-match is set – running the full suite.\n');
+            logger.info('--run-all-on-no-match is set – running the full suite.');
             const code = await runCypress({ specs: [], headed: options.headed, browser: options.browser });
             process.exit(code);
           }
 
-          console.log('      Tip: use --run-all-on-no-match to fall back to the full suite.');
+          logger.info('Tip: use --run-all-on-no-match to fall back to the full suite.');
           process.exit(0);
         }
 
-        console.log(`      Matched ${specs.length} spec(s):`);
-        specs.forEach((s) => console.log(`        • ${s}`));
+        const relativeSpecs = affectedSpecs.map((s) => toRelative(s, cwd));
 
-        console.log('\n[3/3] Starting Cypress…');
-        const exitCode = await runCypress({ specs, headed: options.headed, browser: options.browser });
+        logger.info(`Affected specs (${relativeSpecs.length}):`);
+        relativeSpecs.forEach((s) => logger.bullet(s));
 
-        console.log(`\n${DIVIDER}`);
-        console.log(exitCode === 0 ? '  All affected tests passed.' : `  Cypress exited with code ${exitCode}.`);
-        console.log(DIVIDER + '\n');
+        logger.step(4, 4, 'Running Cypress…');
+
+        const exitCode = await runCypress({
+          specs: relativeSpecs,
+          headed: options.headed,
+          browser: options.browser,
+        });
+
+        logger.footer(
+          exitCode === 0,
+          exitCode === 0 ? 'All affected tests passed.' : `Cypress exited with code ${exitCode}.`
+        );
 
         process.exit(exitCode);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        console.error(`\nError: ${message}`);
+        logger.error(message);
         process.exit(1);
       }
     });
