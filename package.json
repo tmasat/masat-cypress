@@ -4,7 +4,7 @@
   "description": "Run only the Cypress specs affected by your git changes",
   "main": "dist/src/cli/run.js",
   "bin": {
-    "masat-cypress": "dist/bin/masat-cypress.js"
+    "masat:cypress": "dist/bin/masat-cypress.js"
   },
   "scripts": {
     "build": "tsc",

@@ -1,27 +1,18 @@
 import { spawn } from 'child_process';
 
-export interface CypressRunOptions {
-  specs: string[];
-  headed?: boolean;
-  browser?: string;
+export interface CypressOptions {
+  mode: 'run' | 'open';
+  specs?: string[];
   extraArgs?: string[];
 }
 
-export function runCypress(options: CypressRunOptions): Promise<number> {
-  const { specs, headed = false, browser, extraArgs = [] } = options;
+export function runCypress(options: CypressOptions): Promise<number> {
+  const { mode, specs = [], extraArgs = [] } = options;
 
-  const args: string[] = ['cypress', 'run'];
+  const args: string[] = ['cypress', mode];
 
   if (specs.length > 0) {
     args.push('--spec', specs.join(','));
-  }
-
-  if (headed) {
-    args.push('--headed');
-  }
-
-  if (browser) {
-    args.push('--browser', browser);
   }
 
   args.push(...extraArgs);
