@@ -1,16 +1,16 @@
 {
-  "name": "smart-cypress",
+  "name": "masat-cypress",
   "version": "1.0.0",
   "description": "Run only the Cypress specs affected by your git changes",
   "main": "dist/src/cli/run.js",
   "bin": {
-    "smart-cypress": "dist/bin/smart-cypress.js"
+    "masat-cypress": "dist/bin/masat-cypress.js"
   },
   "scripts": {
     "build": "tsc",
-    "postbuild": "chmod +x dist/bin/smart-cypress.js",
-    "dev": "tsx bin/smart-cypress.ts",
-    "start": "node dist/bin/smart-cypress.js",
+    "postbuild": "chmod +x dist/bin/masat-cypress.js",
+    "dev": "tsx bin/masat-cypress.ts",
+    "start": "node dist/bin/masat-cypress.js",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -18,7 +18,6 @@
     "testing",
     "cli",
     "git",
-    "smart-testing",
     "affected-tests"
   ],
   "license": "MIT",

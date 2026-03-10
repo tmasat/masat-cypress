@@ -10,7 +10,7 @@ export function createCLI(): Command {
   const program = new Command();
 
   program
-    .name('smart-cypress')
+    .name('masat-cypress')
     .description('Run only the Cypress specs affected by your git changes')
     .version('1.0.0');
 
@@ -31,7 +31,7 @@ export function createCLI(): Command {
         .filter(Boolean);
 
       try {
-        logger.header('smart-cypress  –  dependency-graph test runner', {
+        logger.header('masat-cypress  –  dependency-graph test runner', {
           'Base ref': options.base,
           'tsconfig': options.tsconfig,
           'Spec globs': specGlobs.join(', '),
