@@ -24,7 +24,8 @@
   "license": "MIT",
   "dependencies": {
     "commander": "^12.0.0",
-    "glob": "^10.4.0"
+    "glob": "^10.4.0",
+    "ts-morph": "^23.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
