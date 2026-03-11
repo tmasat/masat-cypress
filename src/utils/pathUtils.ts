@@ -8,10 +8,6 @@ export function toRelative(absolutePath: string, cwd: string): string {
   return path.relative(cwd, absolutePath);
 }
 
-export function normalise(filePath: string): string {
-  return filePath.split(path.sep).join('/');
-}
-
 export function isCypressSpec(filePath: string): boolean {
   return /\.(cy|spec)\.(ts|js)$/.test(filePath);
 }

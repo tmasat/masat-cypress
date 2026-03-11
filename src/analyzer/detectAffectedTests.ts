@@ -35,11 +35,10 @@ export function detectAffectedTests(
     }
   }
 
-  while (queue.length > 0) {
-    const current = queue.shift()!;
-    const dependents = graph.dependents.get(current) ?? new Set<string>();
-
-    for (const dependent of dependents) {
+  let head = 0;
+  while (head < queue.length) {
+    const current = queue[head++];
+    for (const dependent of graph.dependents.get(current) ?? []) {
       if (!visited.has(dependent)) {
         visited.add(dependent);
         queue.push(dependent);
@@ -47,7 +46,8 @@ export function detectAffectedTests(
     }
   }
 
-  const affectedSpecs = [...visited].filter(isCypressSpec);
-
-  return { affectedSpecs, unknownFiles };
+  return {
+    affectedSpecs: [...visited].filter(isCypressSpec),
+    unknownFiles,
+  };
 }

@@ -1,4 +1,3 @@
-import fs from 'fs';
 import path from 'path';
 import { Project, ScriptTarget, ModuleKind } from 'ts-morph';
 import type { DependencyGraph, GraphBuildOptions } from '../types/graphTypes';
@@ -20,31 +19,18 @@ function addEdge(graph: DependencyGraph, importer: string, importee: string): vo
   graph.dependents.get(importee)!.add(importer);
 }
 
-export function buildDependencyGraph(options: GraphBuildOptions = {}): DependencyGraph {
-  const cwd = options.cwd ?? process.cwd();
-  const tsConfigRelative = options.tsConfigPath ?? 'tsconfig.json';
-  const tsConfigAbsolute = path.resolve(cwd, tsConfigRelative);
-
-  const specGlobs = options.specGlobs ?? [
-    'cypress/e2e/**/*.cy.ts',
-    'cypress/e2e/**/*.cy.js',
-  ];
-
-  let project: Project;
-
-  if (fs.existsSync(tsConfigAbsolute)) {
-    project = new Project({
+function createProject(cwd: string, tsConfigAbsolute: string): Project {
+  try {
+    return new Project({
       tsConfigFilePath: tsConfigAbsolute,
-      compilerOptions: {
-        allowJs: true,
-      },
+      compilerOptions: { allowJs: true },
     });
-  } else {
+  } catch {
     logger.warn(
       `tsconfig.json not found at "${tsConfigAbsolute}". ` +
         'Falling back to scanning src/**/*.{ts,tsx} manually.'
     );
-    project = new Project({
+    const project = new Project({
       compilerOptions: {
         target: ScriptTarget.ES2020,
         module: ModuleKind.CommonJS,
@@ -53,33 +39,34 @@ export function buildDependencyGraph(options: GraphBuildOptions = {}): Dependenc
       },
     });
     project.addSourceFilesAtPaths([path.join(cwd, 'src/**/*.{ts,tsx,js,jsx}')]);
+    return project;
   }
+}
 
-  const absoluteSpecGlobs = specGlobs.map((g) => path.join(cwd, g));
-  project.addSourceFilesAtPaths(absoluteSpecGlobs);
+export function buildDependencyGraph(options: GraphBuildOptions = {}): DependencyGraph {
+  const cwd = options.cwd ?? process.cwd();
+  const tsConfigAbsolute = path.resolve(cwd, options.tsConfigPath ?? 'tsconfig.json');
+  const specGlobs = options.specGlobs ?? ['cypress/e2e/**/*.cy.ts', 'cypress/e2e/**/*.cy.js'];
+
+  const project = createProject(cwd, tsConfigAbsolute);
+  project.addSourceFilesAtPaths(specGlobs.map((g) => path.join(cwd, g)));
 
   const graph: DependencyGraph = {
     dependencies: new Map(),
     dependents: new Map(),
   };
 
-  const sourceFiles = project.getSourceFiles();
-
-  for (const sourceFile of sourceFiles) {
+  for (const sourceFile of project.getSourceFiles()) {
     const importerPath = sourceFile.getFilePath();
     ensureNode(graph, importerPath);
 
-    for (const importDecl of sourceFile.getImportDeclarations()) {
-      const importedFile = importDecl.getModuleSpecifierSourceFile();
-      if (importedFile) {
-        addEdge(graph, importerPath, importedFile.getFilePath());
-      }
-    }
-
-    for (const exportDecl of sourceFile.getExportDeclarations()) {
-      const exportedFile = exportDecl.getModuleSpecifierSourceFile();
-      if (exportedFile) {
-        addEdge(graph, importerPath, exportedFile.getFilePath());
+    for (const decl of [
+      ...sourceFile.getImportDeclarations(),
+      ...sourceFile.getExportDeclarations(),
+    ]) {
+      const resolved = decl.getModuleSpecifierSourceFile();
+      if (resolved) {
+        addEdge(graph, importerPath, resolved.getFilePath());
       }
     }
   }

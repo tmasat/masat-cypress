@@ -1,10 +1,6 @@
 const DIVIDER = '─'.repeat(52);
 
 export const logger = {
-  divider: (): void => {
-    console.log(DIVIDER);
-  },
-
   header: (title: string, meta: Record<string, string> = {}): void => {
     console.log(`\n${DIVIDER}`);
     console.log(`  ${title}`);

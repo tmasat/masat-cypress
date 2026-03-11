@@ -3,11 +3,6 @@ export interface DependencyGraph {
   dependents: Map<string, Set<string>>;
 }
 
-export interface SerializableGraph {
-  dependencies: Record<string, string[]>;
-  dependents: Record<string, string[]>;
-}
-
 export interface GraphBuildOptions {
   cwd?: string;
   tsConfigPath?: string;

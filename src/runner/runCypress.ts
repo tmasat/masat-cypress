@@ -1,4 +1,5 @@
 import { spawn } from 'child_process';
+import { logger } from '../utils/logger';
 
 export interface CypressOptions {
   mode: 'run' | 'open';
@@ -17,7 +18,7 @@ export function runCypress(options: CypressOptions): Promise<number> {
 
   args.push(...extraArgs);
 
-  console.log(`\n  $ npx ${args.join(' ')}\n`);
+  logger.info(`$ npx ${args.join(' ')}`);
 
   return new Promise((resolve, reject) => {
     const child = spawn('npx', args, {
