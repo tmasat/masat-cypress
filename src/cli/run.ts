@@ -5,8 +5,7 @@ import { detectAffectedTests } from '../analyzer/detectAffectedTests';
 import { runCypress } from '../runner/runCypress';
 import { logger } from '../utils/logger';
 import { toRelative } from '../utils/pathUtils';
-
-const SPEC_GLOBS_DEFAULT = 'cypress/e2e/**/*.cy.ts,cypress/e2e/**/*.cy.js';
+import { SPEC_GLOBS_DEFAULT, DEFAULT_BASE_REF } from '../constants';
 
 async function runSmartMode(
   mode: 'run' | 'open',
@@ -94,7 +93,7 @@ function createCypressCommand(mode: 'run' | 'open'): Command {
     .description(descriptions[mode])
     .allowUnknownOption(true)
     .option('--smart', 'Only process specs affected by git changes')
-    .option('--base <ref>', 'Git base ref for diff (smart mode)', 'origin/main')
+    .option('--base <ref>', 'Git base ref for diff (smart mode)', DEFAULT_BASE_REF)
     .option('--tsconfig <path>', 'Path to tsconfig.json (smart mode)', 'tsconfig.json')
     .option('--spec-globs <globs>', 'Spec discovery globs (smart mode)', SPEC_GLOBS_DEFAULT)
     .option('--run-all-on-no-match', `Fall back to ${noMatchLabel} if no specs match (smart mode)`, false)

@@ -2,6 +2,7 @@ import path from 'path';
 import { Project, ScriptTarget, ModuleKind } from 'ts-morph';
 import type { DependencyGraph, GraphBuildOptions } from '../types/graphTypes';
 import { logger } from '../utils/logger';
+import { DEFAULT_SPEC_GLOBS } from '../constants';
 
 function ensureNode(graph: DependencyGraph, filePath: string): void {
   if (!graph.dependencies.has(filePath)) {
@@ -46,7 +47,7 @@ function createProject(cwd: string, tsConfigAbsolute: string): Project {
 export function buildDependencyGraph(options: GraphBuildOptions = {}): DependencyGraph {
   const cwd = options.cwd ?? process.cwd();
   const tsConfigAbsolute = path.resolve(cwd, options.tsConfigPath ?? 'tsconfig.json');
-  const specGlobs = options.specGlobs ?? ['cypress/e2e/**/*.cy.ts', 'cypress/e2e/**/*.cy.js'];
+  const specGlobs = options.specGlobs ?? DEFAULT_SPEC_GLOBS;
 
   const project = createProject(cwd, tsConfigAbsolute);
   project.addSourceFilesAtPaths(specGlobs.map((g) => path.join(cwd, g)));
