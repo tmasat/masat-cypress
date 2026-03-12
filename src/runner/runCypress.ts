@@ -26,8 +26,12 @@ export function runCypress(options: CypressOptions): Promise<number> {
       shell: true,
     });
 
-    child.on('close', (code) => {
-      resolve(code ?? 0);
+    child.on('close', (code, signal) => {
+      if (code === null && signal !== null) {
+        resolve(130);
+      } else {
+        resolve(code ?? 0);
+      }
     });
 
     child.on('error', (err) => {

@@ -1,4 +1,4 @@
-import { execSync } from 'child_process';
+import { spawnSync } from 'child_process';
 
 export interface GitOptions {
   base: string;
@@ -8,12 +8,20 @@ export function getChangedFiles(options: GitOptions): string[] {
   const { base } = options;
 
   try {
-    const output = execSync(`git diff --name-only ${base}`, {
+    const result = spawnSync('git', ['diff', '--name-only', base], {
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
-    return output
+    if (result.error) {
+      throw result.error;
+    }
+
+    if (result.status !== 0) {
+      throw new Error(result.stderr || `git exited with code ${result.status}`);
+    }
+
+    return (result.stdout ?? '')
       .split('\n')
       .map((line) => line.trim())
       .filter((line) => line.length > 0);
