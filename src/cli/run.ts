@@ -3,7 +3,7 @@ import { getChangedFiles } from '../git/getChangedFiles';
 import { buildDependencyGraph } from '../graph/buildDependencyGraph';
 import { detectAffectedTests } from '../analyzer/detectAffectedTests';
 import { runCypress } from '../runner/runCypress';
-import { logger } from '../utils/logger';
+import { createLogger } from '../utils/logger';
 import { toRelative } from '../utils/pathUtils';
 import { SPEC_GLOBS_DEFAULT, DEFAULT_BASE_REF } from '../constants';
 import { GitError, GraphError, ConfigError } from '../errors';
@@ -15,9 +15,11 @@ async function runSmartMode(
     tsconfig: string;
     specGlobs: string;
     runAllOnNoMatch: boolean;
+    verbose: boolean;
   },
   extraArgs: string[]
 ): Promise<number> {
+  const logger = createLogger(options.verbose);
   const cwd = process.cwd();
   const specGlobs = options.specGlobs.split(',').map((g) => g.trim()).filter(Boolean);
 
@@ -40,13 +42,13 @@ async function runSmartMode(
   logger.step(2, 4, 'Building dependency graph…');
   logger.info('Parsing project with ts-morph…');
 
-  const graph = buildDependencyGraph({ cwd, tsConfigPath: options.tsconfig, specGlobs });
+  const graph = buildDependencyGraph({ cwd, tsConfigPath: options.tsconfig, specGlobs, logger });
 
   logger.info(`Graph built. ${graph.dependencies.size} file node(s) indexed.`);
 
   logger.step(3, 4, 'Detecting affected tests…');
 
-  const { affectedSpecs, unknownFiles } = detectAffectedTests(changedFiles, graph, { cwd });
+  const { affectedSpecs, unknownFiles } = detectAffectedTests(changedFiles, graph, { cwd, logger });
 
   if (unknownFiles.length > 0) {
     logger.warn(`${unknownFiles.length} file(s) not in dependency graph (skipped):`);
@@ -89,6 +91,7 @@ function createCypressCommand(mode: 'run' | 'open'): Command {
   };
 
   const noMatchLabel = mode === 'run' ? 'full suite' : 'all specs';
+  const fallbackLogger = createLogger(false);
 
   return new Command(mode)
     .description(descriptions[mode])
@@ -98,6 +101,7 @@ function createCypressCommand(mode: 'run' | 'open'): Command {
     .option('--tsconfig <path>', 'Path to tsconfig.json (smart mode)', 'tsconfig.json')
     .option('--spec-globs <globs>', 'Spec discovery globs (smart mode)', SPEC_GLOBS_DEFAULT)
     .option('--run-all-on-no-match', `Fall back to ${noMatchLabel} if no specs match (smart mode)`, false)
+    .option('--verbose', 'Print debug-level output (smart mode)', false)
     .action(async (options, command) => {
       try {
         const extraArgs: string[] = command.args;
@@ -107,18 +111,19 @@ function createCypressCommand(mode: 'run' | 'open'): Command {
               tsconfig: options.tsconfig,
               specGlobs: options.specGlobs,
               runAllOnNoMatch: options.runAllOnNoMatch,
+              verbose: options.verbose,
             }, extraArgs)
           : await runCypress({ mode, extraArgs });
         process.exit(code);
       } catch (error) {
         if (error instanceof GitError) {
-          logger.error(error.message);
+          fallbackLogger.error(error.message);
           process.exit(3);
         } else if (error instanceof GraphError || error instanceof ConfigError) {
-          logger.error(error.message);
+          fallbackLogger.error(error.message);
           process.exit(2);
         } else {
-          logger.error(error instanceof Error ? error.message : String(error));
+          fallbackLogger.error(error instanceof Error ? error.message : String(error));
           process.exit(1);
         }
       }

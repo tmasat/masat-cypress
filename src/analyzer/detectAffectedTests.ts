@@ -1,8 +1,10 @@
 import type { DependencyGraph } from '../types/graphTypes';
+import type { Logger } from '../utils/logger';
 import { isCypressSpec, toAbsolute } from '../utils/pathUtils';
 
 export interface DetectOptions {
   cwd: string;
+  logger?: Logger;
 }
 
 export interface DetectResult {
@@ -15,7 +17,7 @@ export function detectAffectedTests(
   graph: DependencyGraph,
   options: DetectOptions
 ): DetectResult {
-  const { cwd } = options;
+  const { cwd, logger } = options;
 
   const visited = new Set<string>();
   const queue: string[] = [];
@@ -45,6 +47,8 @@ export function detectAffectedTests(
       }
     }
   }
+
+  logger?.debug(`BFS traversal visited ${visited.size} node(s).`);
 
   return {
     affectedSpecs: [...visited].filter(isCypressSpec),

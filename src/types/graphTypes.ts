@@ -7,4 +7,5 @@ export interface GraphBuildOptions {
   cwd?: string;
   tsConfigPath?: string;
   specGlobs?: string[];
+  logger?: import('../utils/logger').Logger;
 }

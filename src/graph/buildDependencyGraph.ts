@@ -1,7 +1,7 @@
 import path from 'path';
 import { Project, ScriptTarget, ModuleKind } from 'ts-morph';
 import type { DependencyGraph, GraphBuildOptions } from '../types/graphTypes';
-import { logger } from '../utils/logger';
+import { createLogger } from '../utils/logger';
 import { DEFAULT_SPEC_GLOBS } from '../constants';
 import { GraphError } from '../errors';
 
@@ -21,14 +21,18 @@ function addEdge(graph: DependencyGraph, importer: string, importee: string): vo
   graph.dependents.get(importee)!.add(importer);
 }
 
-function createProject(cwd: string, tsConfigAbsolute: string): Project {
+function createProject(
+  cwd: string,
+  tsConfigAbsolute: string,
+  warn: (msg: string) => void
+): Project {
   try {
     return new Project({
       tsConfigFilePath: tsConfigAbsolute,
       compilerOptions: { allowJs: true },
     });
   } catch {
-    logger.warn(
+    warn(
       `tsconfig.json not found at "${tsConfigAbsolute}". ` +
         'Falling back to scanning src/**/*.{ts,tsx} manually.'
     );
@@ -49,9 +53,10 @@ export function buildDependencyGraph(options: GraphBuildOptions = {}): Dependenc
   const cwd = options.cwd ?? process.cwd();
   const tsConfigAbsolute = path.resolve(cwd, options.tsConfigPath ?? 'tsconfig.json');
   const specGlobs = options.specGlobs ?? DEFAULT_SPEC_GLOBS;
+  const logger = options.logger ?? createLogger(false);
 
   try {
-    const project = createProject(cwd, tsConfigAbsolute);
+    const project = createProject(cwd, tsConfigAbsolute, logger.warn);
     project.addSourceFilesAtPaths(specGlobs.map((g) => path.join(cwd, g)));
 
     const graph: DependencyGraph = {
@@ -73,6 +78,8 @@ export function buildDependencyGraph(options: GraphBuildOptions = {}): Dependenc
         }
       }
     }
+
+    logger.debug(`Parsed ${project.getSourceFiles().length} source file(s) into dependency graph.`);
 
     return graph;
   } catch (error) {
