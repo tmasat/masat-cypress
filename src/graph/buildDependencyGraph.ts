@@ -3,6 +3,7 @@ import { Project, ScriptTarget, ModuleKind } from 'ts-morph';
 import type { DependencyGraph, GraphBuildOptions } from '../types/graphTypes';
 import { logger } from '../utils/logger';
 import { DEFAULT_SPEC_GLOBS } from '../constants';
+import { GraphError } from '../errors';
 
 function ensureNode(graph: DependencyGraph, filePath: string): void {
   if (!graph.dependencies.has(filePath)) {
@@ -49,28 +50,34 @@ export function buildDependencyGraph(options: GraphBuildOptions = {}): Dependenc
   const tsConfigAbsolute = path.resolve(cwd, options.tsConfigPath ?? 'tsconfig.json');
   const specGlobs = options.specGlobs ?? DEFAULT_SPEC_GLOBS;
 
-  const project = createProject(cwd, tsConfigAbsolute);
-  project.addSourceFilesAtPaths(specGlobs.map((g) => path.join(cwd, g)));
+  try {
+    const project = createProject(cwd, tsConfigAbsolute);
+    project.addSourceFilesAtPaths(specGlobs.map((g) => path.join(cwd, g)));
 
-  const graph: DependencyGraph = {
-    dependencies: new Map(),
-    dependents: new Map(),
-  };
+    const graph: DependencyGraph = {
+      dependencies: new Map(),
+      dependents: new Map(),
+    };
 
-  for (const sourceFile of project.getSourceFiles()) {
-    const importerPath = sourceFile.getFilePath();
-    ensureNode(graph, importerPath);
+    for (const sourceFile of project.getSourceFiles()) {
+      const importerPath = sourceFile.getFilePath();
+      ensureNode(graph, importerPath);
 
-    for (const decl of [
-      ...sourceFile.getImportDeclarations(),
-      ...sourceFile.getExportDeclarations(),
-    ]) {
-      const resolved = decl.getModuleSpecifierSourceFile();
-      if (resolved) {
-        addEdge(graph, importerPath, resolved.getFilePath());
+      for (const decl of [
+        ...sourceFile.getImportDeclarations(),
+        ...sourceFile.getExportDeclarations(),
+      ]) {
+        const resolved = decl.getModuleSpecifierSourceFile();
+        if (resolved) {
+          addEdge(graph, importerPath, resolved.getFilePath());
+        }
       }
     }
-  }
 
-  return graph;
+    return graph;
+  } catch (error) {
+    if (error instanceof GraphError) throw error;
+    const message = error instanceof Error ? error.message : String(error);
+    throw new GraphError(`Failed to build dependency graph.\nDetails: ${message}`);
+  }
 }

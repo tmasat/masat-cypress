@@ -6,6 +6,7 @@ import { runCypress } from '../runner/runCypress';
 import { logger } from '../utils/logger';
 import { toRelative } from '../utils/pathUtils';
 import { SPEC_GLOBS_DEFAULT, DEFAULT_BASE_REF } from '../constants';
+import { GitError, GraphError, ConfigError } from '../errors';
 
 async function runSmartMode(
   mode: 'run' | 'open',
@@ -110,8 +111,16 @@ function createCypressCommand(mode: 'run' | 'open'): Command {
           : await runCypress({ mode, extraArgs });
         process.exit(code);
       } catch (error) {
-        logger.error(error instanceof Error ? error.message : String(error));
-        process.exit(1);
+        if (error instanceof GitError) {
+          logger.error(error.message);
+          process.exit(3);
+        } else if (error instanceof GraphError || error instanceof ConfigError) {
+          logger.error(error.message);
+          process.exit(2);
+        } else {
+          logger.error(error instanceof Error ? error.message : String(error));
+          process.exit(1);
+        }
       }
     });
 }

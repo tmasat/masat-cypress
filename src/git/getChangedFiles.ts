@@ -1,4 +1,5 @@
 import { spawnSync } from 'child_process';
+import { GitError } from '../errors';
 
 export interface GitOptions {
   base: string;
@@ -26,8 +27,9 @@ export function getChangedFiles(options: GitOptions): string[] {
       .map((line) => line.trim())
       .filter((line) => line.length > 0);
   } catch (error) {
+    if (error instanceof GitError) throw error;
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(
+    throw new GitError(
       `Failed to get changed files (base: "${base}").\n` +
         `Make sure "${base}" exists and you are inside a git repository.\n` +
         `Details: ${message}`
