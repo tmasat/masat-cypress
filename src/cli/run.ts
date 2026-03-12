@@ -94,7 +94,7 @@ function createCypressCommand(mode: 'run' | 'open'): Command {
     .description(descriptions[mode])
     .allowUnknownOption(true)
     .option('--smart', 'Only process specs affected by git changes')
-    .option('--base <ref>', 'Git base ref for diff (smart mode)', DEFAULT_BASE_REF)
+    .option('--base <ref>', `Git base ref for diff, must exist in remote (smart mode)`, DEFAULT_BASE_REF)
     .option('--tsconfig <path>', 'Path to tsconfig.json (smart mode)', 'tsconfig.json')
     .option('--spec-globs <globs>', 'Spec discovery globs (smart mode)', SPEC_GLOBS_DEFAULT)
     .option('--run-all-on-no-match', `Fall back to ${noMatchLabel} if no specs match (smart mode)`, false)

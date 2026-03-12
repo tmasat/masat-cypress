@@ -1,12 +1,31 @@
 import { spawnSync } from 'child_process';
-import { GitError } from '../errors';
+import { GitError, ConfigError } from '../errors';
 
 export interface GitOptions {
   base: string;
 }
 
+function validateBaseRef(base: string): void {
+  const result = spawnSync('git', ['rev-parse', '--verify', base], {
+    encoding: 'utf-8',
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+
+  if (result.error || result.status !== 0) {
+    const suggestion =
+      base === 'origin/main'
+        ? " Did you mean 'origin/master'? Use --base to override."
+        : '';
+    throw new ConfigError(
+      `Base ref '${base}' not found.${suggestion}`
+    );
+  }
+}
+
 export function getChangedFiles(options: GitOptions): string[] {
   const { base } = options;
+
+  validateBaseRef(base);
 
   try {
     const result = spawnSync('git', ['diff', '--name-only', base], {
