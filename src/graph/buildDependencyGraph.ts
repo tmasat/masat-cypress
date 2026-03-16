@@ -4,6 +4,7 @@ import type { DependencyGraph, GraphBuildOptions } from '../types/graphTypes';
 import { createLogger } from '../utils/logger';
 import { DEFAULT_SPEC_GLOBS } from '../constants';
 import { GraphError } from '../errors';
+import { loadCache, saveCache } from '../cache/graphCache';
 
 function ensureNode(graph: DependencyGraph, filePath: string): void {
   if (!graph.dependencies.has(filePath)) {
@@ -51,9 +52,20 @@ function createProject(
 
 export function buildDependencyGraph(options: GraphBuildOptions = {}): DependencyGraph {
   const cwd = options.cwd ?? process.cwd();
-  const tsConfigAbsolute = path.resolve(cwd, options.tsConfigPath ?? 'tsconfig.json');
+  const tsConfigPath = options.tsConfigPath ?? 'tsconfig.json';
+  const tsConfigAbsolute = path.resolve(cwd, tsConfigPath);
   const specGlobs = options.specGlobs ?? DEFAULT_SPEC_GLOBS;
+  const noCache = options.noCache ?? false;
   const logger = options.logger ?? createLogger(false);
+
+  if (!noCache) {
+    const cached = loadCache(cwd, tsConfigPath, specGlobs);
+    if (cached) {
+      logger.debug(`Loaded dependency graph from cache (${cached.dependencies.size} node(s)).`);
+      return cached;
+    }
+    logger.debug('Cache miss – building dependency graph from source…');
+  }
 
   try {
     const project = createProject(cwd, tsConfigAbsolute, logger.warn);
@@ -80,6 +92,15 @@ export function buildDependencyGraph(options: GraphBuildOptions = {}): Dependenc
     }
 
     logger.debug(`Parsed ${project.getSourceFiles().length} source file(s) into dependency graph.`);
+
+    if (!noCache) {
+      try {
+        saveCache(cwd, tsConfigPath, specGlobs, graph);
+        logger.debug('Dependency graph cached.');
+      } catch {
+        logger.warn('Could not write graph cache – continuing without cache.');
+      }
+    }
 
     return graph;
   } catch (error) {

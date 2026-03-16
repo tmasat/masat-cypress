@@ -16,6 +16,7 @@ async function runSmartMode(
     specGlobs: string;
     runAllOnNoMatch: boolean;
     verbose: boolean;
+    noCache: boolean;
   },
   extraArgs: string[]
 ): Promise<number> {
@@ -42,7 +43,7 @@ async function runSmartMode(
   logger.step(2, 4, 'Building dependency graph…');
   logger.info('Parsing project with ts-morph…');
 
-  const graph = buildDependencyGraph({ cwd, tsConfigPath: options.tsconfig, specGlobs, logger });
+  const graph = buildDependencyGraph({ cwd, tsConfigPath: options.tsconfig, specGlobs, noCache: options.noCache, logger });
 
   logger.info(`Graph built. ${graph.dependencies.size} file node(s) indexed.`);
 
@@ -102,6 +103,7 @@ function createCypressCommand(mode: 'run' | 'open'): Command {
     .option('--spec-globs <globs>', 'Spec discovery globs (smart mode)', SPEC_GLOBS_DEFAULT)
     .option('--run-all-on-no-match', `Fall back to ${noMatchLabel} if no specs match (smart mode)`, false)
     .option('--verbose', 'Print debug-level output (smart mode)', false)
+    .option('--no-cache', 'Skip graph cache and rebuild from source (smart mode)')
     .action(async (options, command) => {
       try {
         const extraArgs: string[] = command.args;
@@ -112,6 +114,7 @@ function createCypressCommand(mode: 'run' | 'open'): Command {
               specGlobs: options.specGlobs,
               runAllOnNoMatch: options.runAllOnNoMatch,
               verbose: options.verbose,
+              noCache: options.cache === false,
             }, extraArgs)
           : await runCypress({ mode, extraArgs });
         process.exit(code);
