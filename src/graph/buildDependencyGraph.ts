@@ -1,5 +1,5 @@
 import path from 'path';
-import { Project, ScriptTarget, ModuleKind } from 'ts-morph';
+import { Project, ScriptTarget, ModuleKind, SyntaxKind, Node, type SourceFile } from 'ts-morph';
 import type { DependencyGraph, GraphBuildOptions } from '../types/graphTypes';
 import { createLogger } from '../utils/logger';
 import { DEFAULT_SPEC_GLOBS } from '../constants';
@@ -20,6 +20,37 @@ function addEdge(graph: DependencyGraph, importer: string, importee: string): vo
   ensureNode(graph, importee);
   graph.dependencies.get(importer)!.add(importee);
   graph.dependents.get(importee)!.add(importer);
+}
+
+function addDynamicImportEdges(
+  sourceFile: SourceFile,
+  project: Project,
+  graph: DependencyGraph
+): void {
+  const importerPath = sourceFile.getFilePath();
+  const importerDir = path.dirname(importerPath);
+
+  for (const callExpr of sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)) {
+    if (callExpr.getExpression().getKind() !== SyntaxKind.ImportKeyword) continue;
+
+    const args = callExpr.getArguments();
+    if (args.length === 0 || !Node.isStringLiteral(args[0])) continue;
+
+    const specifier = args[0].getLiteralValue();
+    if (!specifier.startsWith('.')) continue;
+
+    const base = path.resolve(importerDir, specifier);
+    const resolved =
+      project.getSourceFile(base) ??
+      project.getSourceFile(base + '.ts') ??
+      project.getSourceFile(base + '.tsx') ??
+      project.getSourceFile(base + '/index.ts') ??
+      project.getSourceFile(base + '/index.tsx');
+
+    if (resolved) {
+      addEdge(graph, importerPath, resolved.getFilePath());
+    }
+  }
 }
 
 function createProject(
@@ -89,6 +120,8 @@ export function buildDependencyGraph(options: GraphBuildOptions = {}): Dependenc
           addEdge(graph, importerPath, resolved.getFilePath());
         }
       }
+
+      addDynamicImportEdges(sourceFile, project, graph);
     }
 
     logger.debug(`Parsed ${project.getSourceFiles().length} source file(s) into dependency graph.`);

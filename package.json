@@ -11,7 +11,9 @@
     "postbuild": "chmod +x dist/bin/masat-cypress.js",
     "dev": "tsx bin/masat-cypress.ts",
     "start": "node dist/bin/masat-cypress.js",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "lint": "eslint 'src/**/*.ts' 'bin/**/*.ts'",
+    "format": "prettier --write 'src/**/*.ts' 'bin/**/*.ts'"
   },
   "keywords": [
     "cypress",
@@ -27,6 +29,11 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "prettier": "^3.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0"
   }
