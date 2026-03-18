@@ -23,6 +23,7 @@
     "dev": "tsx bin/masat-cypress.ts",
     "start": "node dist/bin/masat-cypress.js",
     "prepublishOnly": "npm run build",
+    "test": "jest",
     "lint": "eslint 'src/**/*.ts' 'bin/**/*.ts'",
     "format": "prettier --write 'src/**/*.ts' 'bin/**/*.ts'"
   },
@@ -39,12 +40,15 @@
     "ts-morph": "^23.0.0"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
     "eslint": "^8.0.0",
     "eslint-config-prettier": "^9.0.0",
+    "jest": "^30.3.0",
     "prettier": "^3.0.0",
+    "ts-jest": "^29.4.6",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0"
   }
