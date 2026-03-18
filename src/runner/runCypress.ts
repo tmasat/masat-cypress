@@ -12,8 +12,8 @@ export function runCypress(options: CypressOptions): Promise<number> {
 
   const args: string[] = ['cypress', mode];
 
-  if (specs.length > 0) {
-    args.push('--spec', specs.join(','));
+  for (const spec of specs) {
+    args.push('--spec', spec);
   }
 
   args.push(...extraArgs);
@@ -23,7 +23,6 @@ export function runCypress(options: CypressOptions): Promise<number> {
   return new Promise((resolve, reject) => {
     const child = spawn('npx', args, {
       stdio: 'inherit',
-      shell: true,
     });
 
     child.on('close', (code, signal) => {
