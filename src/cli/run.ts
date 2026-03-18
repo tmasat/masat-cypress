@@ -7,6 +7,7 @@ import { createLogger } from '../utils/logger';
 import { toRelative, isCypressSpec } from '../utils/pathUtils';
 import { SPEC_GLOBS_DEFAULT, DEFAULT_BASE_REF } from '../constants';
 import { GitError, GraphError, ConfigError } from '../errors';
+import { loadConfig } from '../config/loadConfig';
 import packageJson from '../../package.json';
 
 async function runSmartMode(
@@ -123,16 +124,24 @@ function createCypressCommand(mode: 'run' | 'open'): Command {
     .option('--dry-run', 'Print affected specs without launching Cypress (smart mode)', false)
     .action(async (options, command) => {
       try {
+        const cwd = process.cwd();
+        const fileConfig = loadConfig(cwd, fallbackLogger.warn);
         const extraArgs: string[] = command.args;
+
+        const parsedOptions = command.opts() as Record<string, unknown>;
+        const base = (parsedOptions['base'] !== DEFAULT_BASE_REF ? parsedOptions['base'] : undefined) as string | undefined;
+        const tsconfig = (parsedOptions['tsconfig'] !== 'tsconfig.json' ? parsedOptions['tsconfig'] : undefined) as string | undefined;
+        const specGlobs = (parsedOptions['specGlobs'] !== SPEC_GLOBS_DEFAULT ? parsedOptions['specGlobs'] : undefined) as string | undefined;
+
         const code = options.smart
           ? await runSmartMode(mode, {
-              base: options.base,
-              tsconfig: options.tsconfig,
-              specGlobs: options.specGlobs,
-              runAllOnNoMatch: options.runAllOnNoMatch,
-              verbose: options.verbose,
-              noCache: options.cache === false,
-              dryRun: options.dryRun,
+              base: base ?? fileConfig.base ?? DEFAULT_BASE_REF,
+              tsconfig: tsconfig ?? fileConfig.tsconfig ?? 'tsconfig.json',
+              specGlobs: specGlobs ?? fileConfig.specGlobs ?? SPEC_GLOBS_DEFAULT,
+              runAllOnNoMatch: options.runAllOnNoMatch || (fileConfig.runAllOnNoMatch ?? false),
+              verbose: options.verbose || (fileConfig.verbose ?? false),
+              noCache: options.cache === false || (fileConfig.noCache ?? false),
+              dryRun: options.dryRun || (fileConfig.dryRun ?? false),
             }, extraArgs)
           : await runCypress({ mode, extraArgs });
         process.exit(code);
