@@ -27,7 +27,7 @@ async function runSmartMode(
   const cwd = process.cwd();
   const specGlobs = options.specGlobs.split(',').map((g) => g.trim()).filter(Boolean);
 
-  logger.header(`masat:cypress ${mode} --smart`, {
+  logger.header(`masat-cypress ${mode} --smart`, {
     'Base ref': options.base,
     'tsconfig': options.tsconfig,
   });
@@ -164,7 +164,7 @@ export function createCLI(): Command {
   const program = new Command();
 
   program
-    .name('masat:cypress')
+    .name('masat-cypress')
     .description('Cypress CLI wrapper – add --smart to run only affected specs')
     .version(packageJson.version);
 
