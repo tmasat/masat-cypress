@@ -6,6 +6,17 @@
   "bin": {
     "masat:cypress": "dist/bin/masat-cypress.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tugberkmasat/masat-cypress.git"
+  },
+  "author": "Tugberk Masat",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist/"
+  ],
   "scripts": {
     "build": "tsc",
     "postbuild": "chmod +x dist/bin/masat-cypress.js",

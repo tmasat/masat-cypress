@@ -12,12 +12,11 @@ function validateBaseRef(base: string): void {
   });
 
   if (result.error || result.status !== 0) {
-    const suggestion =
-      base === 'origin/main'
-        ? " Did you mean 'origin/master'? Use --base to override."
-        : '';
+    const candidates = ['origin/main', 'origin/master', 'origin/trunk', 'main', 'master', 'trunk'].filter(
+      (b) => b !== base
+    );
     throw new ConfigError(
-      `Base ref '${base}' not found.${suggestion}`
+      `Base ref '${base}' not found. Try: ${candidates.slice(0, 3).join(', ')}. Use --base to override.`
     );
   }
 }

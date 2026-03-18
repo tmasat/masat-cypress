@@ -4,9 +4,10 @@ import { buildDependencyGraph } from '../graph/buildDependencyGraph';
 import { detectAffectedTests } from '../analyzer/detectAffectedTests';
 import { runCypress } from '../runner/runCypress';
 import { createLogger } from '../utils/logger';
-import { toRelative } from '../utils/pathUtils';
+import { toRelative, isCypressSpec } from '../utils/pathUtils';
 import { SPEC_GLOBS_DEFAULT, DEFAULT_BASE_REF } from '../constants';
 import { GitError, GraphError, ConfigError } from '../errors';
+import packageJson from '../../package.json';
 
 async function runSmartMode(
   mode: 'run' | 'open',
@@ -17,6 +18,7 @@ async function runSmartMode(
     runAllOnNoMatch: boolean;
     verbose: boolean;
     noCache: boolean;
+    dryRun: boolean;
   },
   extraArgs: string[]
 ): Promise<number> {
@@ -47,6 +49,11 @@ async function runSmartMode(
 
   logger.info(`Graph built. ${graph.dependencies.size} file node(s) indexed.`);
 
+  const specNodesInGraph = [...graph.dependencies.keys()].filter(isCypressSpec);
+  if (specNodesInGraph.length === 0) {
+    logger.warn(`No spec files found matching globs: ${specGlobs.join(', ')}`);
+  }
+
   logger.step(3, 4, 'Detecting affected tests…');
 
   const { affectedSpecs, unknownFiles } = detectAffectedTests(changedFiles, graph, { cwd, logger });
@@ -61,6 +68,10 @@ async function runSmartMode(
 
     if (options.runAllOnNoMatch) {
       logger.info('--run-all-on-no-match is set – running the full suite.');
+      if (options.dryRun) {
+        logger.info('[dry-run] Would run full suite – exiting without launching Cypress.');
+        return 0;
+      }
       return runCypress({ mode, extraArgs });
     }
 
@@ -72,6 +83,11 @@ async function runSmartMode(
 
   logger.info(`Affected specs (${relativeSpecs.length}):`);
   relativeSpecs.forEach((s) => logger.bullet(s));
+
+  if (options.dryRun) {
+    logger.info('[dry-run] Exiting without launching Cypress.');
+    return 0;
+  }
 
   logger.step(4, 4, `Running cypress ${mode}…`);
 
@@ -104,6 +120,7 @@ function createCypressCommand(mode: 'run' | 'open'): Command {
     .option('--run-all-on-no-match', `Fall back to ${noMatchLabel} if no specs match (smart mode)`, false)
     .option('--verbose', 'Print debug-level output (smart mode)', false)
     .option('--no-cache', 'Skip graph cache and rebuild from source (smart mode)')
+    .option('--dry-run', 'Print affected specs without launching Cypress (smart mode)', false)
     .action(async (options, command) => {
       try {
         const extraArgs: string[] = command.args;
@@ -115,6 +132,7 @@ function createCypressCommand(mode: 'run' | 'open'): Command {
               runAllOnNoMatch: options.runAllOnNoMatch,
               verbose: options.verbose,
               noCache: options.cache === false,
+              dryRun: options.dryRun,
             }, extraArgs)
           : await runCypress({ mode, extraArgs });
         process.exit(code);
@@ -139,7 +157,7 @@ export function createCLI(): Command {
   program
     .name('masat:cypress')
     .description('Cypress CLI wrapper – add --smart to run only affected specs')
-    .version('1.0.0');
+    .version(packageJson.version);
 
   program.addCommand(createCypressCommand('run'));
   program.addCommand(createCypressCommand('open'));
