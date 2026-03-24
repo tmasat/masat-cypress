@@ -4,7 +4,7 @@ import { buildDependencyGraph } from '../graph/buildDependencyGraph';
 import { detectAffectedTests } from '../analyzer/detectAffectedTests';
 import { runCypress } from '../runner/runCypress';
 import { createLogger } from '../utils/logger';
-import { toRelative, isCypressSpec } from '../utils/pathUtils';
+import { toRelative, makeSpecMatcher } from '../utils/pathUtils';
 import { SPEC_GLOBS_DEFAULT, DEFAULT_BASE_REF } from '../constants';
 import { GitError, GraphError, ConfigError } from '../errors';
 import { loadConfig } from '../config/loadConfig';
@@ -16,6 +16,7 @@ async function runSmartMode(
     base: string;
     tsconfig: string;
     specGlobs: string;
+    specPattern: string;
     runAllOnNoMatch: boolean;
     verbose: boolean;
     noCache: boolean;
@@ -26,6 +27,10 @@ async function runSmartMode(
   const logger = createLogger(options.verbose);
   const cwd = process.cwd();
   const specGlobs = options.specGlobs.split(',').map((g) => g.trim()).filter(Boolean);
+  const extraSpecSuffixes = options.specPattern
+    ? options.specPattern.split(',').map((p) => p.trim()).filter(Boolean)
+    : [];
+  const isSpec = makeSpecMatcher(extraSpecSuffixes);
 
   logger.header(`masat-cypress ${mode} --smart`, {
     'Base ref': options.base,
@@ -50,14 +55,14 @@ async function runSmartMode(
 
   logger.info(`Graph built. ${graph.dependencies.size} file node(s) indexed.`);
 
-  const specNodesInGraph = [...graph.dependencies.keys()].filter(isCypressSpec);
+  const specNodesInGraph = [...graph.dependencies.keys()].filter(isSpec);
   if (specNodesInGraph.length === 0) {
     logger.warn(`No spec files found matching globs: ${specGlobs.join(', ')}`);
   }
 
   logger.step(3, 4, 'Detecting affected tests…');
 
-  const { affectedSpecs, unknownFiles } = detectAffectedTests(changedFiles, graph, { cwd, logger });
+  const { affectedSpecs, unknownFiles } = detectAffectedTests(changedFiles, graph, { cwd, logger, isSpec });
 
   if (unknownFiles.length > 0) {
     logger.warn(`${unknownFiles.length} file(s) not in dependency graph (skipped):`);
@@ -118,6 +123,7 @@ function createCypressCommand(mode: 'run' | 'open'): Command {
     .option('--base <ref>', `Git base ref for diff, must exist in remote (smart mode)`, DEFAULT_BASE_REF)
     .option('--tsconfig <path>', 'Path to tsconfig.json (smart mode)', 'tsconfig.json')
     .option('--spec-globs <globs>', 'Spec discovery globs (smart mode)', SPEC_GLOBS_DEFAULT)
+    .option('--spec-pattern <patterns>', 'Additional spec suffixes beyond .cy.ts/.spec.ts (comma-separated, e.g. .e2e.ts,.test.ts) (smart mode)', '')
     .option('--run-all-on-no-match', `Fall back to ${noMatchLabel} if no specs match (smart mode)`, false)
     .option('--verbose', 'Print debug-level output (smart mode)', false)
     .option('--no-cache', 'Skip graph cache and rebuild from source (smart mode)')
@@ -132,12 +138,14 @@ function createCypressCommand(mode: 'run' | 'open'): Command {
         const base = (parsedOptions['base'] !== DEFAULT_BASE_REF ? parsedOptions['base'] : undefined) as string | undefined;
         const tsconfig = (parsedOptions['tsconfig'] !== 'tsconfig.json' ? parsedOptions['tsconfig'] : undefined) as string | undefined;
         const specGlobs = (parsedOptions['specGlobs'] !== SPEC_GLOBS_DEFAULT ? parsedOptions['specGlobs'] : undefined) as string | undefined;
+        const specPattern = (parsedOptions['specPattern'] !== '' ? parsedOptions['specPattern'] : undefined) as string | undefined;
 
         const code = options.smart
           ? await runSmartMode(mode, {
               base: base ?? fileConfig.base ?? DEFAULT_BASE_REF,
               tsconfig: tsconfig ?? fileConfig.tsconfig ?? 'tsconfig.json',
               specGlobs: specGlobs ?? fileConfig.specGlobs ?? SPEC_GLOBS_DEFAULT,
+              specPattern: specPattern ?? fileConfig.specPattern ?? '',
               runAllOnNoMatch: options.runAllOnNoMatch || (fileConfig.runAllOnNoMatch ?? false),
               verbose: options.verbose || (fileConfig.verbose ?? false),
               noCache: options.cache === false || (fileConfig.noCache ?? false),

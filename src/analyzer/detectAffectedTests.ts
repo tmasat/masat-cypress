@@ -5,6 +5,7 @@ import { isCypressSpec, toAbsolute } from '../utils/pathUtils';
 export interface DetectOptions {
   cwd: string;
   logger?: Logger;
+  isSpec?: (filePath: string) => boolean;
 }
 
 export interface DetectResult {
@@ -17,7 +18,7 @@ export function detectAffectedTests(
   graph: DependencyGraph,
   options: DetectOptions
 ): DetectResult {
-  const { cwd, logger } = options;
+  const { cwd, logger, isSpec = isCypressSpec } = options;
 
   const visited = new Set<string>();
   const queue: string[] = [];
@@ -51,7 +52,7 @@ export function detectAffectedTests(
   logger?.debug(`BFS traversal visited ${visited.size} node(s).`);
 
   return {
-    affectedSpecs: [...visited].filter(isCypressSpec),
+    affectedSpecs: [...visited].filter(isSpec),
     unknownFiles,
   };
 }

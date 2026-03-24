@@ -6,6 +6,7 @@ export interface MasatConfig {
   base?: string;
   tsconfig?: string;
   specGlobs?: string;
+  specPattern?: string;
   runAllOnNoMatch?: boolean;
   verbose?: boolean;
   noCache?: boolean;
@@ -16,6 +17,7 @@ const KNOWN_KEYS: ReadonlySet<string> = new Set([
   'base',
   'tsconfig',
   'specGlobs',
+  'specPattern',
   'runAllOnNoMatch',
   'verbose',
   'noCache',

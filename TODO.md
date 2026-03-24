@@ -2,7 +2,7 @@
 
 ## Critical
 
-- [ ] **Test suite** — Jest + ts-jest kurulumu; her modül için `src/__tests__/` altında unit testler
+- [x] **Test suite** — Jest + ts-jest kurulumu; her modül için `src/__tests__/` altında unit testler
   - `getChangedFiles` — boş diff, renamed/deleted dosya, geçersiz base ref
   - `buildDependencyGraph` — re-export zinciri, tsconfig fallback, circular dependency, dynamic import kenarları
   - `detectAffectedTests` — BFS doğruluğu, transitive dependency, unknownFiles
@@ -11,17 +11,17 @@
 
 ## High
 
-- [ ] **Config file desteği** — `masat-cypress.config.json` ve `package.json` içinde `"masat-cypress"` key'i; `src/config/loadConfig.ts` modülü; öncelik: CLI > config > defaults
+- [x] **Config file desteği** — `masat-cypress.config.json` ve `package.json` içinde `"masat-cypress"` key'i; `src/config/loadConfig.ts` modülü; öncelik: CLI > config > defaults
 
 ## Medium
 
-- [ ] **NPM publish hazırlığı** — `package.json`'a `repository`, `author`, `engines`, `files` alanları ekle; `version`'u `src/cli/run.ts`'de hardcode yerine `package.json`'dan dinamik oku
-- [ ] **`--dry-run` flag** — Cypress başlatmadan etkilenen spec'leri listele, CI öncesi kontrol için
+- [x] **NPM publish hazırlığı** — `package.json`'a `repository`, `author`, `engines`, `files` alanları ekle; `version`'u `src/cli/run.ts`'de hardcode yerine `package.json`'dan dinamik oku
+- [x] **`--dry-run` flag** — Cypress başlatmadan etkilenen spec'leri listele, CI öncesi kontrol için
 - [ ] **Monorepo desteği** — `--tsconfig-paths` ile birden fazla tsconfig, graphları merge et, `package.json` workspaces otomatik algıla
 
 ## Low
 
-- [ ] **Hata mesajı iyileştirmeleri** — base ref bulunamazsa `main`/`master`/`trunk` otomatik öner; graph hatasında stack trace'i koru; spec glob eşleşmezse uyar
+- [x] **Hata mesajı iyileştirmeleri** — base ref bulunamazsa `main`/`master`/`trunk` otomatik öner; graph hatasında stack trace'i koru; spec glob eşleşmezse uyar
 - [ ] **`--spec-pattern` flag** — `.cy.ts`/`.spec.ts` dışındaki pattern'leri de destekle (`.e2e.ts`, `.test.ts` vb.)
 - [ ] **Verbose çıktı genişletmesi** — her aşamanın süresi, graph istatistikleri (node/edge sayısı), dead-end dosya analizi
 
