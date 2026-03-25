@@ -22,8 +22,8 @@
 ## Low
 
 - [x] **Hata mesajı iyileştirmeleri** — base ref bulunamazsa `main`/`master`/`trunk` otomatik öner; graph hatasında stack trace'i koru; spec glob eşleşmezse uyar
-- [ ] **`--spec-pattern` flag** — `.cy.ts`/`.spec.ts` dışındaki pattern'leri de destekle (`.e2e.ts`, `.test.ts` vb.)
-- [ ] **Verbose çıktı genişletmesi** — her aşamanın süresi, graph istatistikleri (node/edge sayısı), dead-end dosya analizi
+- [x] **`--spec-pattern` flag** — `.cy.ts`/`.spec.ts` dışındaki pattern'leri de destekle (`.e2e.ts`, `.test.ts` vb.)
+- [x] **Verbose çıktı genişletmesi** — her aşamanın süresi, graph istatistikleri (node/edge sayısı), dead-end dosya analizi
 
 ## Tamamlananlar
 

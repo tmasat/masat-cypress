@@ -32,13 +32,17 @@ async function runSmartMode(
     : [];
   const isSpec = makeSpecMatcher(extraSpecSuffixes);
 
+  const totalStart = Date.now();
+
   logger.header(`masat-cypress ${mode} --smart`, {
     'Base ref': options.base,
     'tsconfig': options.tsconfig,
   });
 
   logger.step(1, 4, 'Detecting changed files…');
+  let stepStart = Date.now();
   const changedFiles = getChangedFiles({ base: options.base });
+  logger.debug(`Step 1 completed in ${Date.now() - stepStart}ms`);
 
   if (changedFiles.length === 0) {
     logger.info('No changed files detected – nothing to test.');
@@ -50,10 +54,22 @@ async function runSmartMode(
 
   logger.step(2, 4, 'Building dependency graph…');
   logger.info('Parsing project with ts-morph…');
+  stepStart = Date.now();
 
   const graph = buildDependencyGraph({ cwd, tsConfigPath: options.tsconfig, specGlobs, noCache: options.noCache, logger });
+  const graphBuildMs = Date.now() - stepStart;
 
-  logger.info(`Graph built. ${graph.dependencies.size} file node(s) indexed.`);
+  const edgeCount = [...graph.dependencies.values()].reduce((sum, s) => sum + s.size, 0);
+  logger.info(`Graph built. ${graph.dependencies.size} node(s), ${edgeCount} edge(s).`);
+  logger.debug(`Step 2 completed in ${graphBuildMs}ms`);
+
+  const deadEndFiles = [...graph.dependents.entries()]
+    .filter(([f, deps]) => deps.size === 0 && !isSpec(f))
+    .map(([f]) => toRelative(f, cwd));
+  if (deadEndFiles.length > 0) {
+    logger.debug(`Dead-end files (no dependents, ${deadEndFiles.length} total – changes won't trigger any spec):`);
+    deadEndFiles.forEach((f) => logger.debug(`  • ${f}`));
+  }
 
   const specNodesInGraph = [...graph.dependencies.keys()].filter(isSpec);
   if (specNodesInGraph.length === 0) {
@@ -61,8 +77,10 @@ async function runSmartMode(
   }
 
   logger.step(3, 4, 'Detecting affected tests…');
+  stepStart = Date.now();
 
   const { affectedSpecs, unknownFiles } = detectAffectedTests(changedFiles, graph, { cwd, logger, isSpec });
+  logger.debug(`Step 3 completed in ${Date.now() - stepStart}ms`);
 
   if (unknownFiles.length > 0) {
     logger.warn(`${unknownFiles.length} file(s) not in dependency graph (skipped):`);
@@ -96,8 +114,11 @@ async function runSmartMode(
   }
 
   logger.step(4, 4, `Running cypress ${mode}…`);
+  stepStart = Date.now();
 
   const exitCode = await runCypress({ mode, specs: relativeSpecs, extraArgs });
+  logger.debug(`Step 4 completed in ${Date.now() - stepStart}ms`);
+  logger.debug(`Total elapsed: ${Date.now() - totalStart}ms`);
 
   logger.footer(
     exitCode === 0,
