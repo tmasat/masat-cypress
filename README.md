@@ -1,6 +1,6 @@
 <p align="center">
   <h1 align="center">masat-cypress</h1>
-  <p align="center">Run only the Cypress specs <strong>provably affected</strong> by your git changes — using a real TypeScript dependency graph, not filename guessing.</p>
+  <p align="center">Run only the Cypress specs <strong>provably affected</strong> by your git changes, using a real TypeScript dependency graph instead of filename guessing.</p>
 </p>
 
 <p align="center">
@@ -14,7 +14,7 @@
 
 ## The Problem
 
-Naive approaches match changed file names against spec file names — and break constantly:
+Naive approaches match changed file names against spec file names. They break constantly:
 
 | Changed file | Filename match | Graph-based (masat-cypress) |
 |---|---|---|
@@ -66,7 +66,7 @@ graph LR
 Forward graph (dependencies):
   login.cy.ts  ──►  LoginForm.tsx  ──►  authService.ts
 
-Reverse graph (dependents) — what BFS traverses:
+Reverse graph (dependents, what BFS traverses):
   authService.ts  ──►  LoginForm.tsx  ──►  login.cy.ts  ← spec found ✓
 ```
 
@@ -121,11 +121,11 @@ masat-cypress run [--smart] [options] [-- <cypress args>]
 
 | Option | Default | Description |
 |---|---|---|
-| `--smart` | — | Enable smart mode (dependency graph analysis) |
+| `--smart` | | Enable smart mode (dependency graph analysis) |
 | `--base <ref>` | `origin/main` | Git ref to diff against |
 | `--tsconfig <path>` | `tsconfig.json` | Path to tsconfig.json |
 | `--spec-globs <globs>` | `cypress/e2e/**/*.cy.ts,...` | Comma-separated globs for spec discovery |
-| `--spec-pattern <patterns>` | — | Additional spec suffixes (e.g. `.e2e.ts,.test.ts`) |
+| `--spec-pattern <patterns>` | | Additional spec suffixes (e.g. `.e2e.ts,.test.ts`) |
 | `--run-all-on-no-match` | `false` | Fall back to the full suite when nothing matches |
 | `--dry-run` | `false` | Print affected specs without launching Cypress |
 | `--no-cache` | `false` | Rebuild graph from source, skip cache |
